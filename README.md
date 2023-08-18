@@ -16,7 +16,7 @@ pip install -r requirements.txt
 
  Reference output data and a plot are in the './original' folder.
 
- ## Running the new notebook (Open competitive city - log utility)
+ ## Running the new notebook (Closed competitive city - log utility)
 
  - open this folder in VSCode
  - open notebooks/closed_competitive_log_U.ipynb
