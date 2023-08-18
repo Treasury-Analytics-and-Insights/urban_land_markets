@@ -1,5 +1,7 @@
 # urban_land_markets
 
+The App, which is still under development, is available at https://treasury-analytics-and-insights.github.io/urban_land_markets/app/.
+
 ## Installing Preqrequisites
 
 In a terminal, run the following command:
