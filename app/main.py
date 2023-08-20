@@ -1,239 +1,89 @@
-# %% [markdown]
-# # Closed competitive - log Utility
-# 
-# type some text
 
-# %%
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+import panel as pn
 from scipy.integrate import quad
 from scipy.optimize import newton
 
-import panel as pn
+from plot import plot, symmetric_plot_data
+from closed_competitive import closed_competitive
 
-# %% [markdown]
-# ## Parameters
-# 
-# ### Consumers
-# 
-# | parameter | description                                    |
-# |-----------|------------------------------------------------|
-# | N         | population                                     |
-# | W         | wages at the centre                            |
-# | t         | marginal cost of primary commute               |
-# | t_        | fixed cost of alternative commute              |
-# | θ         | job centralisation weight                      |
-# | a         | coefficient for log utility of housing, H      |
-# 
+# scale the panel widgets to stretch to container width
+pn.extension(sizing_mode="stretch_width")
 
-# %%
-N = 1
-W = 5
-t = 2.5
-t_ = 0
-theta = 0.2
-a = 1
+pop_input = pn.widgets.IntInput(name='Population', value=1, start=1, end=1000000)
+wages_input = pn.widgets.FloatInput(name='Wages at centre', value=5, start=0, end=1000000)
+marginal_cost_input = pn.widgets.FloatInput(name='Marginal cost of primary commute', value=2.5, start=0, end=1000000)
+fixed_cost_input = pn.widgets.FloatInput(name='Fixed cost of alternative commute', value=0, start=0, end=1000000)
+job_centralisation_weight_input = pn.widgets.FloatInput(name='Job centralisation weight', value=0.2, start=0, end=1000000)
+coefficient_input = pn.widgets.FloatInput(name='Coefficient for log utility of housing', value=1, start=0, end=1000000)
 
-# %% [markdown]
-# ### Developers
-# 
-# | parameter | description                                    |
-# |-----------|------------------------------------------------|
-# | r_        | land rent at the urban/rural boundary          |
-# | δ         | cost elasticity of building height             |
-# | c0        | cost scalar for building height                | 
-# 
-
-# %%
-r_ = 1
-delta = 1.6
-c0 = 1
-
-# %% [markdown]
-# ### Landlords
-# 
-# | parameter | description                                    |
-# |-----------|------------------------------------------------|
-# | landlords  | t_I       | marginal tax rate for rental income            |
-# | landlords  | t_CG      | marginal tax rate for capital gains income     |
-# | landlords  | t_ID      | rate of tax deductibility                      |
-# | landlords  | t_R       | average tax rate for local government          |
-# | landlords  | f         | maintenance costs of housing                   |
-# | landlords  | β         | share of debt financing vs equity              |
-# | landlords  | π         | general price inflation (nominal)              |
-# | landlords  | g         | house price inflation net of general inflation |
-# | landlords  | i         | interest rate on borrowing                     |
-# | landlords  | φ         | equity risk prem                               |
-# 
-
-# %%
-t_I = 0.33
-t_CG = 0.15
-t_ID = t_I
-t_R = 0.0033
-f = 0.01
-beta = 0.5
-pi = 0.015
-g = 0.015
-i = 0.045
-phi = 0.03
-
-# %% [markdown]
-# ## Derived parameters
-# The Poterba scaler:
-
-# %%
-j = ((beta * i + f + t_R) * (1 - t_ID) + (1 - beta) * (i + phi) - (g + pi) * (1 - t_CG)) / (1 - t_I)
-
-# %%
-B = -theta * t * delta / (a * (delta - 1))
-A = lambda d_: 2 * np.pi / a * delta * j * r_ / (delta - 1) * np.exp(-B * d_)
+consumer_inputs = pn.WidgetBox(
+    pn.pane.Markdown("### Consumer"), pop_input, wages_input, marginal_cost_input, fixed_cost_input, 
+    job_centralisation_weight_input, coefficient_input)
 
 
-# %% [markdown]
-# ## Solve for equilibrium city radius
-# 
+boundary_rent_input = pn.widgets.FloatInput(name='Land rent at the urban/rural boundary', value=1, start=0, end=1000000)
+cost_elasticity_input = pn.widgets.FloatInput(name='Cost elasticity of building height', value=1.6, start=0, end=1000000)
+cost_scalar_building_height_input = pn.widgets.FloatInput(
+    name='Cost scalar for building height', value=1, start=0, end=1000000)
 
-# %%
-city_radius_eqn = lambda d_: A(d_) / B * (d_ * np.exp(B * d_) - (np.exp(B * d_) - 1) / B) - N
-d_ = newton(city_radius_eqn, 1)
+developer_inputs = pn.WidgetBox(
+    pn.pane.Markdown("### Developer"), boundary_rent_input, cost_elasticity_input, cost_scalar_building_height_input
+    )
 
-# %% [markdown]
-# ## Solve initial condition for rent at the centre
+landlords_tax_input = pn.widgets.FloatInput(name='Landlords tax', value=0.33, start=0, end=1000000)
+capital_gains_tax_input = pn.widgets.FloatInput(name='Capital gains tax', value=0.15, start=0, end=1000000)
+tax_deductibility_input = pn.widgets.FloatInput(name='Tax deductibility', value=0.33, start=0, end=1000000)
+local_government_tax_input = pn.widgets.FloatInput(name='Local government tax', value=0.0033, start=0, end=1000000)
+maintenance_cost_input = pn.widgets.FloatInput(name='Maintenance cost', value=0.01, start=0, end=1000000)
+debt_financing_share_input = pn.widgets.FloatInput(name='Debt financing share', value=0.5, start=0, end=1000000)
+general_price_inflation_input = pn.widgets.FloatInput(name='General price inflation', value=0.015, start=0, end=1000000)
+house_price_inflation_input = pn.widgets.FloatInput(name='House price inflation', value=0.015, start=0, end=1000000)
+interest_rate_input = pn.widgets.FloatInput(name='Interest rate', value=0.045, start=0, end=1000000)
+equity_risk_premium_input = pn.widgets.FloatInput(name='Equity risk premium', value=0.03, start=0, end=1000000)
 
-# %%
-p0 = delta * c0 ** (1 / delta) * j * (r_ / (delta - 1)) ** ((delta - 1) / delta) * np.exp(theta * t * d_ / a)
+go_button = pn.widgets.Button(
+    name='Go', button_type='success', width=100, align=('center', 'center'))
 
+landlord_inputs = pn.WidgetBox(
+    pn.pane.Markdown("### Landlords"), landlords_tax_input, capital_gains_tax_input, tax_deductibility_input, 
+    local_government_tax_input, maintenance_cost_input, debt_financing_share_input, general_price_inflation_input, 
+    house_price_inflation_input, interest_rate_input, equity_risk_premium_input, width = 200)
 
-# %% [markdown]
-# ## Equilibrium prices/quantities
-# 
-# ### Rent and house prices
-# 
+plot_pane = pn.pane.Matplotlib(tight=True, width = 800)
 
-# %%
-p = lambda d: p0 * np.exp(-theta * t * d / a)
-P = lambda d: p(d) / j
+all_inputs = pn.Row(
+    pn.Column(
+        pn.Row(
+            pn.Column(consumer_inputs, developer_inputs, width=250), landlord_inputs),
+        go_button, width = 450), plot_pane).servable(target="simple_app")
 
+d = np.linspace(0, 1.5, 51)
 
-# %% [markdown]
-# 
-# ### Land prices
-# 
+def update(event):
+        
+    all_quantities, d_, diff_land_rents = closed_competitive(
+        beta = debt_financing_share_input.value, i = interest_rate_input.value, 
+        f = maintenance_cost_input.value, t_R = local_government_tax_input.value, 
+        t_ID = tax_deductibility_input.value, phi = equity_risk_premium_input.value, 
+        g = house_price_inflation_input.value, pi = general_price_inflation_input.value, 
+        t_CG = capital_gains_tax_input.value, t_I = landlords_tax_input.value,
+        theta = job_centralisation_weight_input.value, t = marginal_cost_input.value,
+        delta = cost_elasticity_input.value, a = coefficient_input.value, 
+        c0 = cost_scalar_building_height_input.value, N = pop_input.value,
+        r_ = boundary_rent_input.value, W = wages_input.value, t_ = fixed_cost_input.value, 
+        d = d)
 
-# %%
-r = lambda d: r_ * np.exp(-B * (d_ - d))
+    symmetric = symmetric_plot_data(all_quantities)
 
+    fig = plot(symmetric, diff_land_rents, d_)
 
-
-# %% [markdown]
-# ### Land quantity
-# 
-
-# %%
-L = lambda d: a * (delta * c0 * j) ** (1 / (delta - 1)) * p(d) ** (delta / (1 - delta))
-L_density = lambda d: 1 / L(d)
-
-# %% [markdown]
-# ### Housing quantity
-
-# %%
-H = lambda d: a / p(d)
-h = lambda d: H(d) / L(d)
-
-
-# %% [markdown]
-# ### Utility
-
-# %%
-U = W - (1 - theta) * t_ - a + a * np.log(a) - a * np.log(p0)
-
-# %% [markdown]
-# ### Differential land rents
-
-# %%
-diff_land_rents, error = quad(lambda d: 2 * np.pi * d * (r(d) - r_), 0, d_)
+    plot_pane.object = fig
 
 
-# %% [markdown]
-# ## Calculate prices/quantities at a range of distances from the city centre
+update(None)
 
-# %%
-d = np.linspace(0, 1.5, 301)
-
-eq = pd.DataFrame({'p(d)': p(d),
-                   'P(d)': P(d),
-                   'r(d)': r(d),
-                   'L(d)': L(d),
-                   '1/L(d)': L_density(d),
-                   'H(d)': H(d),
-                   'h(d)': h(d),
-                   'r_': r_})
-eq.index = d
-
-
-# %% [markdown]
-# ## New symmetrical plot
-
-# %%
-# create a plot like the above but symmetric about d = 0 to represent the cross-section of a city
-
-# first, take the required columns from the dataframe except the first row, and reverse the order
-# then, append the original dataframe to the reversed dataframe
-
-# taking the r(d) P(d), r_ and p(d) columns, and renaming them 'Land price', House price', 'Farm land price', and 'House rents'
-
-negatives = eq[['r(d)', 'P(d)', 'r_', 'p(d)']].iloc[1:].iloc[::-1]
-negatives.index = -negatives.index
-symmetric = pd.concat([negatives, eq[['r(d)', 'P(d)', 'r_', 'p(d)']]], axis=0)
-symmetric.columns = ['Land price', 'House price', 'Rural land price', 'House rents']
-
-
-# %%
-# plot the houe rents in gold, land price in blue, the rural land price in green and the house price in orange
-# shade the area between the house price and the rural land price in blue with 30% transparency
-
-# define colours
-
-GOLD = np.array((241, 164, 45))/255
-BLUE = np.array((0, 79, 103))/255
-GREEN = np.array((103, 168, 84))/255
-ORANGE = np.array((220,88,42))/255
-
-LINEWIDTH = 2
-
-fig = plt.figure(figsize=(10, 6))
-plt.plot(symmetric['House rents'].loc[abs(symmetric.index) <= d_], label = 'House rents', color=GOLD, linewidth=LINEWIDTH)
-plt.plot(symmetric['Land price'], label = 'Land price', color=BLUE, linewidth=LINEWIDTH)
-plt.plot(symmetric['Rural land price'], label = 'Rural land price', color=GREEN, linewidth=LINEWIDTH)
-plt.plot(symmetric['House price'].loc[abs(symmetric.index) <= d_], label = 'House price', color=ORANGE, linewidth=LINEWIDTH)
-# put the legend outside the plot, horizontally at the bottom
-plt.legend(bbox_to_anchor=(0., -0.2, 1., .102), loc='lower left',
-              ncol=4, mode="expand", borderaxespad=0., frameon=False)
-# shade the area between the house price and the rural land price in blue with 30% transparency
-plt.fill_between(symmetric.index[abs(symmetric.index) <= d_], symmetric['Land price'].loc[abs(symmetric.index) <= d_], 
-                    symmetric['Rural land price'].loc[abs(symmetric.index) <= d_], color=BLUE, alpha=0.3)
-
-# annotate the plot with the integrated differential land rents near the top right corner
-plt.annotate('Integrated differential land rents: {:.2f}'.format(diff_land_rents), 
-    xy=(0.95, 0.9), xycoords='axes fraction', fontsize=10,
-    horizontalalignment='right', verticalalignment='top')
-
-# format plot in the tufte style using matplotlib
-for spine in plt.gca().spines.values():
-    spine.set_visible(False)
-
-# make tick marks invisible
-plt.tick_params(axis='both', which='both', bottom=False, top=False, labelbottom=True, left=False, right=False, labelleft=True)
-
-#draw very faint grid lines
-
-plt.grid(color='grey', linestyle='-', linewidth=0.25, alpha=0.7)
-
-plt.gca().set_xlabel('Distance from city centre', fontsize=16)
-plt.gca().set_title('Closed city - competitive model', fontsize=18)
-
-pn.pane.Matplotlib(fig, tight=True, width = 800).servable(target="simple_app")
-
+go_button.on_click(update)
 
