@@ -1,4 +1,4 @@
-import matplotlib.pyplot as plt
+import matplotlib.pyplot as fig
 import numpy as np
 import pandas as pd
 
@@ -18,36 +18,36 @@ def symmetric_plot_data(eq):
     return symmetric
 
 
-def plot(symmetric, diff_land_rents, d_):
-    fig = plt.figure(figsize=(10, 6))
-    plt.plot(symmetric['House rents'].loc[abs(symmetric.index) <= d_], label = 'House rents', color=GOLD, linewidth=LINEWIDTH)
-    plt.plot(symmetric['Land price'], label = 'Land price', color=BLUE, linewidth=LINEWIDTH)
-    plt.plot(symmetric['Rural land price'], label = 'Rural land price', color=GREEN, linewidth=LINEWIDTH)
-    plt.plot(symmetric['House price'].loc[abs(symmetric.index) <= d_], label = 'House price', color=ORANGE, linewidth=LINEWIDTH)
+def plot(fig, symmetric, diff_land_rents, d_):
+    fig.clf()
+    ax = fig.gca()
+    ax.plot(symmetric['House rents'].loc[abs(symmetric.index) <= d_], label = 'House rents', color=GOLD, linewidth=LINEWIDTH)
+    ax.plot(symmetric['Land price'], label = 'Land price', color=BLUE, linewidth=LINEWIDTH)
+    ax.plot(symmetric['Rural land price'], label = 'Rural land price', color=GREEN, linewidth=LINEWIDTH)
+    ax.plot(symmetric['House price'].loc[abs(symmetric.index) <= d_], label = 'House price', color=ORANGE, linewidth=LINEWIDTH)
     # put the legend outside the plot, horizontally at the bottom
-    plt.legend(bbox_to_anchor=(0., -0.2, 1., .102), loc='lower left',
+    ax.legend(bbox_to_anchor=(0., -0.2, 1., .102), loc='lower left',
                 ncol=4, mode="expand", borderaxespad=0., frameon=False)
     # shade the area between the house price and the rural land price in blue with 30% transparency
-    plt.fill_between(symmetric.index[abs(symmetric.index) <= d_], symmetric['Land price'].loc[abs(symmetric.index) <= d_], 
+    ax.fill_between(symmetric.index[abs(symmetric.index) <= d_], symmetric['Land price'].loc[abs(symmetric.index) <= d_], 
                         symmetric['Rural land price'].loc[abs(symmetric.index) <= d_], color=BLUE, alpha=0.3)
 
     # annotate the plot with the integrated differential land rents near the top right corner
-    plt.annotate('Integrated differential land rents: {:.2f}'.format(diff_land_rents), 
+    ax.annotate('Integrated differential land rents: {:.2f}'.format(diff_land_rents), 
         xy=(0.95, 0.9), xycoords='axes fraction', fontsize=10,
         horizontalalignment='right', verticalalignment='top')
 
     # format plot in the tufte style using matplotlib
-    for spine in plt.gca().spines.values():
+    for spine in ax.spines.values():
         spine.set_visible(False)
 
     # make tick marks invisible
-    plt.tick_params(axis='both', which='both', bottom=False, top=False, labelbottom=True, left=False, right=False, labelleft=True)
+    ax.tick_params(axis='both', which='both', bottom=False, top=False, labelbottom=True, left=False, right=False, labelleft=True)
 
     #draw very faint grid lines
 
-    plt.grid(color='grey', linestyle='-', linewidth=0.25, alpha=0.7)
+    ax.grid(color='grey', linestyle='-', linewidth=0.25, alpha=0.7)
 
-    plt.gca().set_xlabel('Distance from city centre', fontsize=16)
-    plt.gca().set_title('Closed city - competitive model', fontsize=18)
+    ax.set_xlabel('Distance from city centre', fontsize=16)
+    ax.set_title('Closed city - competitive model', fontsize=18)
 
-    return fig

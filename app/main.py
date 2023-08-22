@@ -5,8 +5,9 @@ import js
 logging.basicConfig(format='%(asctime)s:%(levelname)s:%(message)s', level=logging.WARNING)
 
 logging.info('Start')
+from matplotlib.figure import Figure
 import numpy as np
-logging.info("imported numpy")
+logging.info("imported matplotlib and numpy")
 import panel as pn
 from panel.widgets import IntInput, FloatInput, Button
 logging.info("imported panel")
@@ -59,7 +60,9 @@ landlord_inputs = pn.WidgetBox(
     local_government_tax_input, maintenance_cost_input, debt_financing_share_input, general_price_inflation_input, 
     house_price_inflation_input, interest_rate_input, equity_risk_premium_input, width = 200)
 
-plot_pane = pn.pane.Matplotlib(tight=True, width = 800)
+
+fig = Figure(figsize=(10, 6))
+plot_pane = pn.pane.Matplotlib(fig, format='svg', tight=True, width = 800)
 
 all_inputs = pn.Row(
     pn.Column(
@@ -72,6 +75,7 @@ logging.info('Finished setuping up widgets')
 d = np.linspace(0, 1.5, 51)
 
 def update(event):
+    
     logging.info('Start update')    
     all_quantities, d_, diff_land_rents = closed_competitive(
         beta = debt_financing_share_input.value, i = interest_rate_input.value, 
@@ -87,9 +91,9 @@ def update(event):
 
     symmetric = symmetric_plot_data(all_quantities)
 
-    fig = plot(symmetric, diff_land_rents, d_)
+    plot(fig, symmetric, diff_land_rents, d_)
 
-    plot_pane.object = fig
+    plot_pane.param.trigger('object')
     logging.info('Finished update')
 
 
